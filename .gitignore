@@ -1,0 +1,5 @@
+.idea
+.env
+secrets.py
+.DS_Store
+.env
