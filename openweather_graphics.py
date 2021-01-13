@@ -5,6 +5,7 @@ import json
 import time
 
 import displayio
+
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text.label import Label
 
@@ -25,7 +26,8 @@ class OpenWeather_Graphics(displayio.Group):
         root_group.append(self)
         self._icon_group = displayio.Group(max_size=1)
         self.append(self._icon_group)
-        self._text_group = displayio.Group(max_size=5)
+        self._filename_cache = ""
+        self._text_group = displayio.Group(max_size=6)
         self.append(self._text_group)
 
         self._icon_sprite = None
@@ -47,7 +49,7 @@ class OpenWeather_Graphics(displayio.Group):
 
         self.time_text = Label(self.large_font, max_glyphs=8)
         self.time_text.x = 180
-        self.time_text.y = 20
+        self.time_text.y = 40
         self.time_text.color = 0xFFFF00
         self._text_group.append(self.time_text)
 
@@ -56,6 +58,12 @@ class OpenWeather_Graphics(displayio.Group):
         self.cal_text.y = 16
         self.cal_text.color = 0xFFFFFF
         self._text_group.append(self.cal_text)
+
+        self.wind_text = Label(self.small_font, max_glyphs=len("Wind: 123 mph"))
+        self.wind_text.x = 10
+        self.wind_text.y = 40
+        self.wind_text.color = 0x0101FF
+        self._text_group.append(self.wind_text)
 
         self.temp_text = Label(self.large_font, max_glyphs=6)
         self.temp_text.x = 200
@@ -98,7 +106,7 @@ class OpenWeather_Graphics(displayio.Group):
         print(main_text)
         self.main_text.text = main_text
 
-        temperature = weather['main']['temp'] # its... units=imperial
+        temperature = weather['main']['temp']  # its... units=imperial
         print(temperature)
         if self.celsius:
             self.temp_text.text = "%d °C" % ((temperature - 32) * 5 / 9)
@@ -110,6 +118,10 @@ class OpenWeather_Graphics(displayio.Group):
         print(description)
         self.description_text.text = description
         # "thunderstorm with heavy drizzle"
+
+        wind_speed = int(weather['wind']['speed'])
+        print(f'wind speed: {wind_speed}')
+        self.wind_text.text = f'Wind: {wind_speed} mph'
 
     def update_time(self):
         """Fetch the time.localtime(), parse it out and update the display text"""
@@ -142,11 +154,17 @@ class OpenWeather_Graphics(displayio.Group):
 
         """
         print("Set icon to ", filename)
+
+        if self._filename_cache == filename:
+            return  # we're done, no filename changes
+
         if self._icon_group:
             self._icon_group.pop()
 
         if not filename:
+            self._filename_cache = filename
             return  # we're done, no icon desired
+
         if self._icon_file:
             self._icon_file.close()
         self._icon_file = open(filename, "rb")
@@ -159,3 +177,4 @@ class OpenWeather_Graphics(displayio.Group):
                                                    pixel_shader=displayio.ColorConverter(),
                                                    position=(0, 0))
         self._icon_group.append(self._icon_sprite)
+        self._filename_cache = filename

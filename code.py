@@ -14,14 +14,16 @@ import time
 from collections import namedtuple
 
 import adafruit_adt7410
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
-import adafruit_minimqtt.adafruit_minimqtt as MQTT
 import board
 import busio
 import digitalio
+import microcontroller
+from analogio import AnalogIn
+
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+import adafruit_minimqtt.adafruit_minimqtt as MQTT
 from adafruit_esp32spi import adafruit_esp32spi_wifimanager
 from adafruit_pyportal import PyPortal
-from analogio import AnalogIn
 
 cwd = ("/" + __file__).rsplit('/', 1)[0]  # the current working directory (where this file is)
 sys.path.append(cwd)
@@ -39,7 +41,7 @@ except ImportError:
 # Set up where we'll be fetching data from
 DATA_SOURCE = "http://api.openweathermap.org/data/2.5/weather?id=" + secrets[
     'openweather_location_id'] + "&units=imperial&appid=" + secrets[
-    'openweather_token']
+                  'openweather_token']
 DATA_LOCATION = []
 
 # Initialize the pyportal object and let us know what data to fetch and where
@@ -71,10 +73,13 @@ board_led.switch_to_output()
 # ------- Stats  ------- #
 
 counters = {}
+
+
 def _inc_counter(name):
     global counters
     curr_value = counters.get(name, 0)
     counters[name] = curr_value + 1
+
 
 # ------------- MQTT Topic Setup ------------- #
 
@@ -88,7 +93,7 @@ def _parse_brightness(topic, message):
     print("_parse_brightness: {0} {1} {2}".format(
         len(message), topic, message))
     set_backlight(message)
-    _inc_counter('bright')
+    _inc_counter('brightness')
 
 
 def _parse_openweather_message(topic, message):
@@ -98,9 +103,14 @@ def _parse_openweather_message(topic, message):
     try:
         gfx.display_weather(message)
         tss['weather'] = time.monotonic()  # reset so no new update is needed
-        _inc_counter('weather_cache')
+        _inc_counter('weather_mqtt')
     except Exception as e:
         print(f"Error in _parse_openweather_message -", e)
+
+
+def _parse_localtime_message(topic, message):
+    # TODO(flaviof): implement this
+    _inc_counter('time_update')
 
 
 mqtt_topic = secrets.get("topic_prefix") or "/pyportal"
@@ -112,6 +122,7 @@ mqtt_subs = {
     f"{mqtt_topic}/ping": _parse_ping,
     f"{mqtt_topic}/brightness": _parse_brightness,
     "/openweather/raw": _parse_openweather_message,
+    "/aio/localtime": _parse_localtime_message,
 }
 
 
@@ -126,26 +137,30 @@ def connect(client, userdata, flags, rc):
     print(f"mqtt_msg: {client.mqtt_msg}", end=" ")
     print(f"Flags: {flags} RC: {rc}")
     for mqtt_sub in mqtt_subs:
-        print("Subscribing to %s" % mqtt_sub)
+        print(f"Subscribing to {mqtt_sub}")
         client.subscribe(mqtt_sub)
+    _inc_counter('connect')
 
 
-def disconnected(client, userdata, rc):
+def disconnected(_client, _userdata, rc):
     # This method is called when the client is disconnected
-    print("Disconnected from MQTT Broker!")
+    print(f"Disconnected from MQTT Broker! RC: {rc}")
+    _inc_counter('disconnected')
 
 
-def subscribe(client, userdata, topic, granted_qos):
+def subscribe(_client, _userdata, topic, granted_qos):
     # This method is called when the client subscribes to a new feed.
-    print("Subscribed to {0} with QOS level {1}".format(topic, granted_qos))
+    print(f"Subscribed to {topic} with QOS level {granted_qos}")
+    _inc_counter('subscribe')
 
 
-def publish(client, userdata, topic, pid):
+def publish(_client, userdata, topic, pid):
     # This method is called when the client publishes data to a feed.
-    print("Published to {0} with PID {1}".format(topic, pid))
+    print(f"Published to {topic} with PID {pid}")
+    _inc_counter('publish')
 
 
-def message(client, topic, message):
+def message(_client, topic, message):
     """Method called when a client's subscribed feed has a new
     value.
     :param str topic: The topic of the feed with a new value.
@@ -183,8 +198,15 @@ client.on_subscribe = subscribe
 client.on_publish = publish
 client.on_message = message
 
-print("Attempting to connect to %s" % client.broker)
-client.connect()
+print(f"Attempting to MQTT connect to {client.broker}")
+try:
+    client.connect()
+except Exception as e:
+    print(f"FATAL! Unable to MQTT connect to {client.broker}: {e}")
+    time.sleep(120)
+    # bye bye cruel world
+    microcontroller.reset()
+
 
 # ------------- Screen elements ------------- #
 
@@ -195,7 +217,8 @@ def set_backlight(val):
                 off, and ``1`` is 100% brightness. Can also be 'on' or 'off'
     """
     if isinstance(val, str):
-        val = {"on": 1.0, "off": 0}.get(val.lower(), val)
+        val = {"on": 1, "off": 0, "mid": 0.5, "min": 0.01, "max": 1,
+               "yes": 1, "no": 0, "y": 1, "n": 0}.get(val.lower(), val)
     try:
         val = float(val)
     except (ValueError, TypeError):
@@ -208,24 +231,30 @@ def set_backlight(val):
 gfx = openweather_graphics.OpenWeather_Graphics(pyportal.splash, am_pm=True, celsius=False)
 set_backlight("on")
 
+
 # ------------- Iteration routines ------------- #
+
+def interval_localtime():
+    pyportal.get_local_time()
+    _inc_counter('get_local_time')
+
 
 def interval_weather():
     value = pyportal.fetch()
     print("interval_weather response is", value)
     gfx.display_weather(value)
-    _inc_counter('weather_get')
+    _inc_counter('weather_fetch')
 
 
 def interval_send_status():
     global counters
 
     value = {"lux": adc.value,
-             "up_mins": int(time.monotonic() - t0) // 60,
-             "bright": board.DISPLAY.brightness,
+             "uptime_mins": int(time.monotonic() - t0) // 60,
+             "brightness": board.DISPLAY.brightness,
              "ip": wifi.ip_address(),
              "counters": str(counters),
-             "mem_free": gc.mem_free(),}
+             "mem_free": gc.mem_free(), }
     client.publish(mqtt_pub_temperature, (adt.temperature * 9 / 5) + 32)  # Celsius to Fahrenheit
     client.publish(mqtt_pub_light, value["lux"] // 64)  # map 65535 to 1024 (16 to 10 bits)
     client.publish(mqtt_pub_status, json.dumps(value))
@@ -238,12 +267,26 @@ def interval_led_blink():
 
 TS = namedtuple("TS", "interval fun")
 TS_INTERVALS = {
-    'localtime': TS(3601, pyportal.get_local_time),
+    'localtime': TS(3601, interval_localtime),
     'weather': TS(11 * 60, interval_weather),
-    'update_time': TS(30, gfx.update_time),
+    'update_time': TS(16, gfx.update_time),
     'send_status': TS(10 * 60, interval_send_status),
-    'led_blink': TS(15, interval_led_blink),
+    'led_blink': TS(11, interval_led_blink),
 }
+
+
+def _try_reconnect(e):
+    print(f"Failed mqtt loop: {e}")
+    _inc_counter('fail_loop')
+    time.sleep(3)
+    try:
+        client.disconnect()
+        client.connect()
+    except Exception as e:
+        # bye bye cruel world
+        print(f"FATAL! Failed reconnect: {e}")
+        microcontroller.reset()
+
 
 # ------------- Main loop ------------- #
 
@@ -251,13 +294,12 @@ tss = {interval: None for interval in TS_INTERVALS}
 t0 = time.monotonic()
 now = t0
 while True:
-    # Poll the message queue
     try:
-        client.loop()
-    except RuntimeError as e:
-        print(f"Failed mqtt client loop: {e}")
-        _inc_counter('mqtt_loop_fail')
-        time.sleep(3)
+        if not client.loop():
+            # Take a little break if nothing really happened
+            time.sleep(0.123)
+    except Exception as e:
+        _try_reconnect(e)
 
     now = time.monotonic()
     for ts_interval in TS_INTERVALS:
@@ -269,7 +311,12 @@ while True:
                 else:
                     print(".", end="")
                 TS_INTERVALS[ts_interval].fun()
-                tss[ts_interval] = time.monotonic()
             except (ValueError, RuntimeError) as e:
-                print(f"Error in {ts_interval}, retrying in 10s -", e)
+                print(f"Error in {ts_interval}, retrying in 10s: {e}")
                 tss[ts_interval] = (now - TS_INTERVALS[ts_interval].interval) + 10
+                _inc_counter('fail_runtime')
+                continue
+            except Exception as e:
+                print(f"Failed {ts_interval}: {e}")
+                _inc_counter('fail_other')
+            tss[ts_interval] = time.monotonic()
