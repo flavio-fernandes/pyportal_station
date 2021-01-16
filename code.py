@@ -18,11 +18,11 @@ import board
 import busio
 import digitalio
 import microcontroller
+import rtc
 from analogio import AnalogIn
 
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
-from adafruit_esp32spi import adafruit_esp32spi_wifimanager
 from adafruit_pyportal import PyPortal
 
 cwd = ("/" + __file__).rsplit('/', 1)[0]  # the current working directory (where this file is)
@@ -50,10 +50,6 @@ pyportal = PyPortal(url=DATA_SOURCE,
                     json_path=DATA_LOCATION,
                     status_neopixel=board.NEOPIXEL,
                     default_bg=0x000000)
-
-# ------------- WiFi ------------- #
-
-wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(pyportal._esp, secrets, None)
 
 # ------- Sensor Setup ------- #
 
@@ -109,8 +105,27 @@ def _parse_openweather_message(topic, message):
 
 
 def _parse_localtime_message(topic, message):
-    # TODO(flaviof): implement this
-    _inc_counter('time_update')
+    # /aio/local_time : 2021-01-15 23:07:36.339 015 5 -0500 EST
+    try:
+        print(f"Local time mqtt: {message}")
+        times = message.split(" ")
+        the_date = times[0]
+        the_time = times[1]
+        year_day = int(times[2])
+        week_day = int(times[3])
+        is_dst = None  # no way to know yet
+        year, month, mday = [int(x) for x in the_date.split("-")]
+        the_time = the_time.split(".")[0]
+        hours, minutes, seconds = [int(x) for x in the_time.split(":")]
+        now = time.struct_time(
+            (year, month, mday, hours, minutes, seconds, week_day, year_day, is_dst)
+        )
+        rtc.RTC().datetime = now
+        tss['localtime'] = time.monotonic()  # reset so no new update is needed
+        _inc_counter('local_time_mqtt')
+    except Exception as e:
+        print(f"Error in _parse_localtime_message -", e)
+        _inc_counter('local_time_mqtt_failed')
 
 
 mqtt_topic = secrets.get("topic_prefix") or "/pyportal"
@@ -122,7 +137,7 @@ mqtt_subs = {
     f"{mqtt_topic}/ping": _parse_ping,
     f"{mqtt_topic}/brightness": _parse_brightness,
     "/openweather/raw": _parse_openweather_message,
-    "/aio/localtime": _parse_localtime_message,
+    "/aio/local_time": _parse_localtime_message,
 }
 
 
@@ -175,11 +190,11 @@ def message(_client, topic, message):
 
 # Connect to WiFi
 print("Connecting to WiFi...")
-wifi.connect()
+pyportal.network.connect()
 print("Connected to WiFi!")
 
 # Initialize MQTT interface with the esp interface
-MQTT.set_socket(socket, pyportal._esp)
+MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
 client = MQTT.MQTT(
@@ -236,7 +251,7 @@ set_backlight("on")
 
 def interval_localtime():
     pyportal.get_local_time()
-    _inc_counter('get_local_time')
+    _inc_counter('local_time_fetch')
 
 
 def interval_weather():
@@ -252,7 +267,7 @@ def interval_send_status():
     value = {"lux": adc.value,
              "uptime_mins": int(time.monotonic() - t0) // 60,
              "brightness": board.DISPLAY.brightness,
-             "ip": wifi.ip_address(),
+             "ip": pyportal.network.ip_address,
              "counters": str(counters),
              "mem_free": gc.mem_free(), }
     client.publish(mqtt_pub_temperature, (adt.temperature * 9 / 5) + 32)  # Celsius to Fahrenheit
@@ -267,11 +282,11 @@ def interval_led_blink():
 
 TS = namedtuple("TS", "interval fun")
 TS_INTERVALS = {
-    'localtime': TS(3601, interval_localtime),
+    'localtime': TS(3620, interval_localtime),
     'weather': TS(11 * 60, interval_weather),
     'update_time': TS(16, gfx.update_time),
     'send_status': TS(10 * 60, interval_send_status),
-    'led_blink': TS(11, interval_led_blink),
+    'led_blink': TS(12, interval_led_blink),
 }
 
 
