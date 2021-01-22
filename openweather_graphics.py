@@ -27,7 +27,7 @@ class OpenWeather_Graphics(displayio.Group):
         self._icon_group = displayio.Group(max_size=1)
         self.append(self._icon_group)
         self._filename_cache = ""
-        self._text_group = displayio.Group(max_size=6)
+        self._text_group = displayio.Group(max_size=7)
         self.append(self._text_group)
 
         self._icon_sprite = None
@@ -41,6 +41,7 @@ class OpenWeather_Graphics(displayio.Group):
         glyphs = b'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-,.: '
         self.small_font.load_glyphs(glyphs)
         self.medium_font.load_glyphs(glyphs)
+        self.medium_font.load_glyphs(('°',))  # a non-ascii character we need for sure
         self.large_font.load_glyphs(glyphs)
         self.large_font.load_glyphs(('°',))  # a non-ascii character we need for sure
         self.large_font2.load_glyphs(glyphs)
@@ -48,40 +49,53 @@ class OpenWeather_Graphics(displayio.Group):
         self.city_text = None
 
         self.time_text = Label(self.large_font, max_glyphs=8)
-        self.time_text.x = 180
-        self.time_text.y = 40
+        self.time_text.x = 100
+        self.time_text.y = 120
         self.time_text.color = 0xFFFF00
         self._text_group.append(self.time_text)
 
         self.cal_text = Label(self.medium_font, max_glyphs=len("Fri, 22/Jan/2222"))
-        self.cal_text.x = 10
+        self.cal_text.x = 150
         self.cal_text.y = 16
         self.cal_text.color = 0xFFFFFF
         self._text_group.append(self.cal_text)
 
         self.wind_text = Label(self.small_font, max_glyphs=len("Wind: 123 mph"))
-        self.wind_text.x = 10
+        self.wind_text.x = 150
         self.wind_text.y = 40
-        self.wind_text.color = 0x0101FF
+        self.wind_text.color = 0x3366FF
         self._text_group.append(self.wind_text)
 
-        self.temp_text = Label(self.large_font, max_glyphs=6)
-        self.temp_text.x = 200
-        self.temp_text.y = 195
-        self.temp_text.color = 0xFFFFFF
-        self._text_group.append(self.temp_text)
+        self.out_temp_text = Label(self.medium_font, max_glyphs=len("out: 123 CF"))
+        self.out_temp_text.x = 214
+        self.out_temp_text.y = 195
+        self.out_temp_text.color = 0xFFC0C0
+        self._text_group.append(self.out_temp_text)
 
-        self.main_text = Label(self.large_font, max_glyphs=20)
+        self.in_temp_text = Label(self.medium_font, max_glyphs=len("_in: 123 CF"))
+        self.in_temp_text.x = 214 + 7
+        self.in_temp_text.y = 220
+        self.in_temp_text.color = 0x00FFFF
+        self._text_group.append(self.in_temp_text)
+
+        self.main_text = Label(self.medium_font, max_glyphs=20)  # Clouds
         self.main_text.x = 10
         self.main_text.y = 195
-        self.main_text.color = 0xFFFFFF
+        self.main_text.color = 0xFF6600
         self._text_group.append(self.main_text)
 
-        self.description_text = Label(self.small_font, max_glyphs=60)
+        self.description_text = Label(self.small_font, max_glyphs=60)  # Broken Clouds
         self.description_text.x = 10
         self.description_text.y = 225
         self.description_text.color = 0xFFFFFF
         self._text_group.append(self.description_text)
+
+    def display_inside_temp(self, temperature):
+        print(f"inside temperature is {temperature} °F")
+        if self.celsius:
+            self.in_temp_text.text = " in: %d °C" % ((temperature - 32) * 5 / 9)
+        else:
+            self.in_temp_text.text = " in: %d °F" % temperature
 
     def display_weather(self, weather):
         weather = json.loads(weather)
@@ -109,9 +123,9 @@ class OpenWeather_Graphics(displayio.Group):
         temperature = weather['main']['temp']  # its... units=imperial
         print(temperature)
         if self.celsius:
-            self.temp_text.text = "%d °C" % ((temperature - 32) * 5 / 9)
+            self.out_temp_text.text = "out: %d °C" % ((temperature - 32) * 5 / 9)
         else:
-            self.temp_text.text = "%d °F" % temperature
+            self.out_temp_text.text = "out: %d °F" % temperature
 
         description = weather['weather'][0]['description']
         description = description[0].upper() + description[1:]

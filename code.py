@@ -51,6 +51,8 @@ pyportal = PyPortal(url=DATA_SOURCE,
                     status_neopixel=board.NEOPIXEL,
                     default_bg=0x000000)
 
+gfx = openweather_graphics.OpenWeather_Graphics(pyportal.splash, am_pm=True, celsius=False)
+
 # ------- Sensor Setup ------- #
 
 # init. the temperature sensor (ADT7410)
@@ -128,6 +130,11 @@ def _parse_localtime_message(topic, message):
         _inc_counter('local_time_mqtt_failed')
 
 
+def _parse_temperature_house(topic, message):
+    gfx.display_inside_temp(int(message))
+    _inc_counter('inside_temp')
+
+
 mqtt_topic = secrets.get("topic_prefix") or "/pyportal"
 mqtt_pub_temperature = f"{mqtt_topic}/temperature"
 mqtt_pub_light = f"{mqtt_topic}/light"
@@ -138,6 +145,7 @@ mqtt_subs = {
     f"{mqtt_topic}/brightness": _parse_brightness,
     "/openweather/raw": _parse_openweather_message,
     "/aio/local_time": _parse_localtime_message,
+    "/sensor/temperature_house": _parse_temperature_house,
 }
 
 
@@ -243,7 +251,6 @@ def set_backlight(val):
     board.DISPLAY.brightness = val
 
 
-gfx = openweather_graphics.OpenWeather_Graphics(pyportal.splash, am_pm=True, celsius=False)
 set_backlight("on")
 
 
