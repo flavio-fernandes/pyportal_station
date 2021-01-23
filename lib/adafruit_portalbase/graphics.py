@@ -24,7 +24,7 @@ Implementation Notes
 import gc
 import displayio
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PortalBase.git"
 
 

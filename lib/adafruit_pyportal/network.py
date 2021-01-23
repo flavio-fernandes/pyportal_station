@@ -28,7 +28,6 @@ import gc
 # pylint: disable=unused-import
 from adafruit_portalbase.network import (
     NetworkBase,
-    secrets,
     CONTENT_JSON,
     CONTENT_TEXT,
 )
@@ -36,7 +35,7 @@ from adafruit_portalbase.network import (
 # pylint: enable=unused-import
 from adafruit_pyportal.wifi import WiFi
 
-__version__ = "5.0.0"
+__version__ = "5.1.1"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PyPortal.git"
 
 # you'll need to pass in an io username, width, height, format (bit depth), io key, and then url!
@@ -57,6 +56,18 @@ class Network(NetworkBase):
     :param bool extract_values: If true, single-length fetched values are automatically extracted
                                 from lists and tuples. Defaults to ``True``.
     :param debug: Turn on debug print outs. Defaults to False.
+    :param convert_image: Determine whether or not to use the AdafruitIO image converter service.
+                          Set as False if your image is already resized. Defaults to True.
+    :param image_url_path: The HTTP traversal path for a background image to display.
+                             Defaults to ``None``.
+    :param image_json_path: The JSON traversal path for a background image to display. Defaults to
+                            ``None``.
+    :param image_resize: What size to resize the image we got from the json_path, make this a tuple
+                         of the width and height you want. Defaults to ``None``.
+    :param image_position: The position of the image on the display as an (x, y) tuple. Defaults to
+                           ``None``.
+    :param image_dim_json_path: The JSON traversal path for the original dimensions of image tuple.
+                                Used with fetch(). Defaults to ``None``.
 
     """
 
@@ -74,6 +85,7 @@ class Network(NetworkBase):
         image_resize=None,
         image_position=None,
         image_dim_json_path=None,
+        secrets_data=None,
     ):
         wifi = WiFi(status_neopixel=status_neopixel, esp=esp, external_spi=external_spi)
 
@@ -81,6 +93,7 @@ class Network(NetworkBase):
             wifi,
             extract_values=extract_values,
             debug=debug,
+            secrets_data=secrets_data,
         )
 
         self._convert_image = convert_image
@@ -89,7 +102,6 @@ class Network(NetworkBase):
         self._image_resize = image_resize
         self._image_position = image_position
         self._image_dim_json_path = image_dim_json_path
-
         gc.collect()
 
     @property
@@ -97,14 +109,13 @@ class Network(NetworkBase):
         """Return the IP Address nicely formatted"""
         return self._wifi.esp.pretty_ip(self._wifi.esp.ip_address)
 
-    @staticmethod
-    def image_converter_url(image_url, width, height, color_depth=16):
+    def image_converter_url(self, image_url, width, height, color_depth=16):
         """Generate a converted image url from the url passed in,
         with the given width and height. aio_username and aio_key must be
         set in secrets."""
         try:
-            aio_username = secrets["aio_username"]
-            aio_key = secrets["aio_key"]
+            aio_username = self._secrets["aio_username"]
+            aio_key = self._secrets["aio_key"]
         except KeyError as error:
             raise KeyError(
                 "\n\nOur image converter service require a login/password to rate-limit. Please register for a free adafruit.io account and place the user/key in your secrets file under 'aio_username' and 'aio_key'"  # pylint: disable=line-too-long

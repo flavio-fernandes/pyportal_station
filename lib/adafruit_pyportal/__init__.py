@@ -34,13 +34,7 @@ from adafruit_pyportal.network import Network, CONTENT_JSON, CONTENT_TEXT
 from adafruit_pyportal.graphics import Graphics
 from adafruit_pyportal.peripherals import Peripherals
 
-if hasattr(board, "TOUCH_XL"):
-    import adafruit_touchscreen
-elif hasattr(board, "BUTTON_CLOCK"):
-    from adafruit_cursorcontrol.cursorcontrol import Cursor
-    from adafruit_cursorcontrol.cursorcontrol_cursormanager import CursorManager
-
-__version__ = "5.0.0"
+__version__ = "5.1.1"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PyPortal.git"
 
 
@@ -128,7 +122,8 @@ class PyPortal(PortalBase):
         success_callback=None,
         esp=None,
         external_spi=None,
-        debug=False
+        debug=False,
+        secrets_data=None,
     ):
 
         graphics = Graphics(
@@ -166,6 +161,7 @@ class PyPortal(PortalBase):
             image_position=image_position,
             image_dim_json_path=image_dim_json_path,
             debug=debug,
+            secrets_data=secrets_data,
         )
 
         self.url = url
@@ -360,5 +356,8 @@ class PyPortal(PortalBase):
         json_out = None
         response = None
         gc.collect()
+
+        if len(values) == 1:
+            values = values[0]
 
         return values

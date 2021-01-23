@@ -41,7 +41,7 @@ except ImportError:
 
     NATIVE_SD = False
 
-__version__ = "5.0.0"
+__version__ = "5.1.1"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PyPortal.git"
 
 
