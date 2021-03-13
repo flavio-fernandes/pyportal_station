@@ -55,13 +55,13 @@ class OpenWeather_Graphics(displayio.Group):
         self._text_group.append(self.time_text)
 
         self.cal_text = Label(self.medium_font, max_glyphs=len("Fri, 22/Jan/2222"))
-        self.cal_text.x = 150
+        self.cal_text.x = 120
         self.cal_text.y = 16
         self.cal_text.color = 0xFFFFFF
         self._text_group.append(self.cal_text)
 
         self.wind_text = Label(self.small_font, max_glyphs=len("Wind: 123 mph"))
-        self.wind_text.x = 150
+        self.wind_text.x = 120
         self.wind_text.y = 40
         self.wind_text.color = 0x3366FF
         self._text_group.append(self.wind_text)
