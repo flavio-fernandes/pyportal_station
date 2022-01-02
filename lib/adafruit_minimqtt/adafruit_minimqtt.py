@@ -30,7 +30,7 @@ from micropython import const
 import adafruit_logging as logging
 from .matcher import MQTTMatcher
 
-__version__ = "4.1.0"
+__version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_MiniMQTT.git"
 
 # Client-specific variables

@@ -19,15 +19,15 @@ large_font2 = cwd + "/fonts/Helvetica-Bold-16.bdf"
 
 class OpenWeather_Graphics(displayio.Group):
     def __init__(self, root_group, *, am_pm=True, celsius=True):
-        super().__init__(max_size=2)
+        super().__init__()
         self.am_pm = am_pm
         self.celsius = celsius
 
         root_group.append(self)
-        self._icon_group = displayio.Group(max_size=1)
+        self._icon_group = displayio.Group()
         self.append(self._icon_group)
         self._filename_cache = ""
-        self._text_group = displayio.Group(max_size=7)
+        self._text_group = displayio.Group()
         self.append(self._text_group)
 
         self._icon_sprite = None
@@ -48,43 +48,43 @@ class OpenWeather_Graphics(displayio.Group):
         self.large_font2.load_glyphs(('()',))  # additional on large_font2
         self.city_text = None
 
-        self.time_text = Label(self.large_font, max_glyphs=8)
+        self.time_text = Label(self.large_font)
         self.time_text.x = 100
         self.time_text.y = 120
         self.time_text.color = 0xFFFF00
         self._text_group.append(self.time_text)
 
-        self.cal_text = Label(self.medium_font, max_glyphs=len("Fri, 22/Jan/2222"))
+        self.cal_text = Label(self.medium_font)
         self.cal_text.x = 120
         self.cal_text.y = 16
         self.cal_text.color = 0xFFFFFF
         self._text_group.append(self.cal_text)
 
-        self.wind_text = Label(self.small_font, max_glyphs=len("Wind: 123 mph"))
+        self.wind_text = Label(self.small_font)
         self.wind_text.x = 120
         self.wind_text.y = 40
         self.wind_text.color = 0x3366FF
         self._text_group.append(self.wind_text)
 
-        self.out_temp_text = Label(self.medium_font, max_glyphs=len("out: 123 CF"))
+        self.out_temp_text = Label(self.medium_font)
         self.out_temp_text.x = 214
         self.out_temp_text.y = 195
         self.out_temp_text.color = 0xFFC0C0
         self._text_group.append(self.out_temp_text)
 
-        self.in_temp_text = Label(self.medium_font, max_glyphs=len("_in: 123 CF"))
+        self.in_temp_text = Label(self.medium_font)
         self.in_temp_text.x = 214 + 7
         self.in_temp_text.y = 220
         self.in_temp_text.color = 0x00FFFF
         self._text_group.append(self.in_temp_text)
 
-        self.main_text = Label(self.medium_font, max_glyphs=20)  # Clouds
+        self.main_text = Label(self.medium_font)  # Clouds
         self.main_text.x = 10
         self.main_text.y = 195
         self.main_text.color = 0xFF6600
         self._text_group.append(self.main_text)
 
-        self.description_text = Label(self.small_font, max_glyphs=60)  # Broken Clouds
+        self.description_text = Label(self.small_font)  # Broken Clouds
         self.description_text.x = 10
         self.description_text.y = 225
         self.description_text.color = 0xFFFFFF

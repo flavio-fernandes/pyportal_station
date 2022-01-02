@@ -14,6 +14,7 @@ import time
 from collections import namedtuple
 
 import adafruit_adt7410
+import adafruit_logging as logging
 import board
 import busio
 import digitalio
@@ -259,6 +260,7 @@ pyportal.network.connect()
 print("Connected to WiFi!")
 
 # Initialize MQTT interface with the esp interface
+socket.set_interface(pyportal.network._wifi.esp)
 MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
@@ -268,8 +270,11 @@ client = MQTT.MQTT(
     username=secrets["broker_user"],
     password=secrets["broker_pass"],
 )
-client.attach_logger()
-client.set_logger_level("DEBUG")
+try:
+    client.enable_logger(logging, logging.DEBUG)
+except:
+    client.attach_logger()
+    client.set_logger_level("DEBUG")
 
 # Connect callback handlers to client
 client.on_connect = connect
@@ -286,7 +291,6 @@ except Exception as e:
     time.sleep(120)
     # bye bye cruel world
     microcontroller.reset()
-
 
 # ------------- Screen elements ------------- #
 
