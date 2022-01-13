@@ -260,7 +260,6 @@ pyportal.network.connect()
 print("Connected to WiFi!")
 
 # Initialize MQTT interface with the esp interface
-socket.set_interface(pyportal.network._wifi.esp)
 MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
