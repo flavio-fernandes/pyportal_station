@@ -13,6 +13,9 @@ import sys
 import time
 from collections import namedtuple
 
+
+from microcontroller import watchdog as wd
+from watchdog import WatchDogMode
 import adafruit_adt7410
 import adafruit_logging as logging
 import board
@@ -50,6 +53,10 @@ DATA_SOURCE = (
     + secrets["openweather_token"]
 )
 DATA_LOCATION = []
+
+# Watch out for the WatchDogMode!
+ENABLE_DOG = True
+dog_is_enabled = False
 
 # Initialize the pyportal object and let us know what data to fetch and where
 # to display it
@@ -260,6 +267,7 @@ pyportal.network.connect()
 print("Connected to WiFi!")
 
 # Initialize MQTT interface with the esp interface
+socket.set_interface(pyportal.network._wifi.esp)
 MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
@@ -363,6 +371,11 @@ def interval_led_blink():
     board_led.value = not board_led.value
 
 
+def one_sec_tick():
+    if dog_is_enabled:
+        wd.feed()
+
+
 TS = namedtuple("TS", "interval fun")
 TS_INTERVALS = {
     "localtime": TS(3620, interval_localtime),
@@ -370,6 +383,7 @@ TS_INTERVALS = {
     "update_time": TS(16, gfx.update_time),
     "send_status": TS(10 * 60, interval_send_status),
     LED_BLINK: TS(LED_BLINK_DEFAULT, interval_led_blink),  # may be overridden via mqtt
+    "1sec": TS(1, one_sec_tick),
 }
 
 
@@ -385,6 +399,35 @@ def _try_reconnect(e):
         print(f"FATAL! Failed reconnect: {e}")
         microcontroller.reset()
 
+
+def run_once():
+    global dog_is_enabled
+
+    if ENABLE_DOG:
+        print("--------------------------------------------------------")
+        print("IMPORTANT: watch dog is enabled! To disable it, do:")
+        print("from microcontroller import watchdog as wd ; wd.deinit()")
+        print("--------------------------------------------------------")
+        wd.timeout = 15  # timeout in seconds
+        wd.mode = WatchDogMode.RESET
+        dog_is_enabled = True
+    else:
+        print("NOTE: watch dog is disabled")
+        no_dog()
+
+
+def no_dog():
+    global dog_is_enabled
+
+    try:
+        wd.deinit()
+        dog_is_enabled = False
+    except Exception as e:
+        print(f"could not disable watchdog: {e}")
+    return not dog_is_enabled
+
+
+run_once()
 
 # ------------- Main loop ------------- #
 
