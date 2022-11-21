@@ -24,11 +24,14 @@ import digitalio
 import microcontroller
 import neopixel
 import rtc
+import supervisor
 from analogio import AnalogIn
 
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
 from adafruit_pyportal import PyPortal
+
+supervisor.disable_autoreload()
 
 cwd = ("/" + __file__).rsplit("/", 1)[
     0
@@ -271,11 +274,15 @@ socket.set_interface(pyportal.network._wifi.esp)
 MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
+# https://github.com/adafruit/Adafruit_CircuitPython_MiniMQTT/issues/129
+broker_user = secrets["broker_user"] if secrets["broker_user"] else None
+broker_pass = secrets["broker_pass"] if secrets["broker_pass"] else None
+
 client = MQTT.MQTT(
     broker=secrets["broker"],
     port=1883,
-    username=secrets["broker_user"],
-    password=secrets["broker_pass"],
+    username=broker_user,
+    password=broker_pass,
 )
 try:
     client.enable_logger(logging, logging.DEBUG)
@@ -436,7 +443,7 @@ t0 = time.monotonic()
 now = t0
 while True:
     try:
-        if not client.loop():
+        if not client.loop(timeout=2):
             # Take a little break if nothing really happened
             time.sleep(0.123)
     except Exception as e:

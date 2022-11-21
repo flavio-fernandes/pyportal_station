@@ -2,8 +2,8 @@
 
 #### CircuitPython based project for Adafruit PyPortal to use MQTT and show weather
 
-This repo is a snapshot of all libraries, icons, and python scripts
-needed to have time and weather info on a PyPortal
+This repo provides icons and python files needed to display time and weather on a PyPortal.
+Circuit Python libraries can be installed via circup, as shown below.
 
 ![PyPortal weather station](https://live.staticflickr.com/65535/52496248772_7e26e1e3ad_k.jpg)
 
@@ -37,10 +37,81 @@ Lastly, check these links for a good reference on Circuit Python
 
 # Assuming that PyPortal is mounted under /Volumes/CIRCUITPY
 $  cd ${THIS_REPO_DIR}
-$  [ -d /Volumes/CIRCUITPY/ ] && \
+$  [ -e ./code.py ] && \
+   [ -d /Volumes/CIRCUITPY/ ] && \
    rm -rf /Volumes/CIRCUITPY/* && \
    (tar czf - *) | ( cd /Volumes/CIRCUITPY ; tar xzvf - ) && \
    echo ok || echo not_okay
+```
+
+### Libraries
+
+Use [circup](https://learn.adafruit.com/keep-your-circuitpython-libraries-on-devices-up-to-date-with-circup)
+to install these libraries:
+
+```text
+$ python3 -m venv .env && source ./.env/bin/activate && \
+  pip install --upgrade pip
+
+$ pip3 install circup
+
+$ for LIB in \
+    adafruit_adt7410 \
+    adafruit_bitmap_font \
+    adafruit_esp32spi \
+    adafruit_logging \
+    adafruit_minimqtt \
+    adafruit_pyportal \
+    neopixel \
+    ; do circup install $LIB ; done
+```
+
+This is what it should look like:
+```text
+$ ls /Volumes/CIRCUITPY/
+LICENSE         boot_out.txt    fonts           init_background.bmp openweather_graphics.py secrets.py.sample
+README.md       code.py         icons           lib
+
+$ ls /Volumes/CIRCUITPY/lib
+adafruit_adt7410.mpy        adafruit_display_text       adafruit_io         adafruit_miniqr.mpy     adafruit_pyportal       adafruit_touchscreen.mpy
+adafruit_bitmap_font        adafruit_esp32spi       adafruit_logging.mpy        adafruit_pixelbuf.mpy       adafruit_register       neopixel.mpy
+adafruit_bus_device     adafruit_fakerequests.mpy   adafruit_minimqtt       adafruit_portalbase     adafruit_requests.mpy       simpleio.mpy
+
+$ circup freeze
+Found device at /Volumes/CIRCUITPY, running CircuitPython 7.3.3.
+adafruit_adt7410==1.3.8
+adafruit_requests==1.12.10
+adafruit_logging==5.0.1
+adafruit_fakerequests==1.0.11
+adafruit_miniqr==1.3.15
+adafruit_pixelbuf==1.1.8
+adafruit_touchscreen==1.1.17
+neopixel==6.3.6
+simpleio==3.0.9
+adafruit_bus_device==5.2.3
+adafruit_register==1.9.14
+adafruit_bitmap_font==1.5.11
+adafruit_esp32spi==5.0.5
+adafruit_minimqtt==6.0.1
+adafruit_display_text==2.22.12
+adafruit_io==5.6.12
+adafruit_portalbase==1.14.5
+adafruit_pyportal==6.2.8
+```
+
+### secrets.py
+
+Make sure to create a file called secrets.py to include info on the wifi as well as the MQTT
+broker you will connect to. Use [**secrets.py.sample**](https://github.com/flavio-fernandes/pyportal_station/blob/main/secrets.py.sample)
+as reference.
+
+At this point, all needed files should be in place, and all that
+is needed is to let code.py run. From the Circuit Python serial console:
+
+```text
+>>  <CTRL-D>
+soft reboot
+...
 ```
 
 Example MQTT commands

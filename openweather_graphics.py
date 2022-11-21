@@ -3,13 +3,14 @@
 
 import json
 import time
-
 import displayio
 
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text.label import Label
 
-cwd = ("/" + __file__).rsplit('/', 1)[0]  # the current working directory (where this file is)
+cwd = ("/" + __file__).rsplit("/", 1)[
+    0
+]  # the current working directory (where this file is)
 
 small_font = cwd + "/fonts/Arial-12.bdf"
 medium_font = cwd + "/fonts/Arial-16.bdf"
@@ -38,14 +39,14 @@ class OpenWeather_Graphics(displayio.Group):
         self.medium_font = bitmap_font.load_font(medium_font)
         self.large_font = bitmap_font.load_font(large_font)
         self.large_font2 = bitmap_font.load_font(large_font2)
-        glyphs = b'0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-,.: '
+        glyphs = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-,.: "
         self.small_font.load_glyphs(glyphs)
         self.medium_font.load_glyphs(glyphs)
-        self.medium_font.load_glyphs(('°',))  # a non-ascii character we need for sure
+        self.medium_font.load_glyphs(("°",))  # a non-ascii character we need for sure
         self.large_font.load_glyphs(glyphs)
-        self.large_font.load_glyphs(('°',))  # a non-ascii character we need for sure
+        self.large_font.load_glyphs(("°",))  # a non-ascii character we need for sure
         self.large_font2.load_glyphs(glyphs)
-        self.large_font2.load_glyphs(('()',))  # additional on large_font2
+        self.large_font2.load_glyphs(("()",))  # additional on large_font2
         self.city_text = None
 
         self.time_text = Label(self.large_font)
@@ -102,10 +103,10 @@ class OpenWeather_Graphics(displayio.Group):
 
         # set the icon/background
         # https://openweathermap.org/weather-conditions
-        weather_icon = weather['weather'][0]['icon']
+        weather_icon = weather["weather"][0]["icon"]
         self.set_icon(cwd + "/icons/" + weather_icon + ".bmp")
 
-        city_name = weather['name'] + ", " + weather['sys']['country']
+        city_name = weather["name"] + ", " + weather["sys"]["country"]
         print(city_name)
         # if not self.city_text:
         #     self.city_text = Label(self.medium_font, text=city_name)
@@ -116,26 +117,26 @@ class OpenWeather_Graphics(displayio.Group):
 
         self.update_time()
 
-        main_text = weather['weather'][0]['main']
+        main_text = weather["weather"][0]["main"]
         print(main_text)
         self.main_text.text = main_text
 
-        temperature = weather['main']['temp']  # its... units=imperial
+        temperature = weather["main"]["temp"]  # its... units=imperial
         print(temperature)
         if self.celsius:
             self.out_temp_text.text = "out: %d °C" % ((temperature - 32) * 5 / 9)
         else:
             self.out_temp_text.text = "out: %d °F" % temperature
 
-        description = weather['weather'][0]['description']
+        description = weather["weather"][0]["description"]
         description = description[0].upper() + description[1:]
         print(description)
         self.description_text.text = description
         # "thunderstorm with heavy drizzle"
 
-        wind_speed = int(weather['wind']['speed'])
-        print(f'wind speed: {wind_speed}')
-        self.wind_text.text = f'Wind: {wind_speed} mph'
+        wind_speed = int(weather["wind"]["speed"])
+        print(f"wind speed: {wind_speed}")
+        self.wind_text.text = f"Wind: {wind_speed} mph"
 
     def update_time(self):
         """Fetch the time.localtime(), parse it out and update the display text"""
@@ -153,10 +154,29 @@ class OpenWeather_Graphics(displayio.Group):
                 hour = 12
         time_str = format_str % (hour, minute)
         self.time_text.text = time_str
-        wday = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"}.get(
-            now.tm_wday, '')
-        month = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-                 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}.get(now.tm_mon)
+        wday = {
+            0: "Mon",
+            1: "Tue",
+            2: "Wed",
+            3: "Thu",
+            4: "Fri",
+            5: "Sat",
+            6: "Sun",
+        }.get(now.tm_wday, "")
+        month = {
+            1: "Jan",
+            2: "Feb",
+            3: "Mar",
+            4: "Apr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Aug",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dec",
+        }.get(now.tm_mon)
         cal_str = f"{wday}, {now.tm_mday}/{month}/{now.tm_year}"
         self.cal_text.text = cal_str
         print(f"{cal_str} {time_str}")
@@ -184,11 +204,12 @@ class OpenWeather_Graphics(displayio.Group):
         self._icon_file = open(filename, "rb")
         icon = displayio.OnDiskBitmap(self._icon_file)
         try:
-            self._icon_sprite = displayio.TileGrid(icon,
-                                                   pixel_shader=displayio.ColorConverter())
+            self._icon_sprite = displayio.TileGrid(
+                icon, pixel_shader=displayio.ColorConverter()
+            )
         except TypeError:
-            self._icon_sprite = displayio.TileGrid(icon,
-                                                   pixel_shader=displayio.ColorConverter(),
-                                                   position=(0, 0))
+            self._icon_sprite = displayio.TileGrid(
+                icon, pixel_shader=displayio.ColorConverter(), position=(0, 0)
+            )
         self._icon_group.append(self._icon_sprite)
         self._filename_cache = filename
