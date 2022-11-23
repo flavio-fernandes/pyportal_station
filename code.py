@@ -270,7 +270,6 @@ pyportal.network.connect()
 print("Connected to WiFi!")
 
 # Initialize MQTT interface with the esp interface
-socket.set_interface(pyportal.network._wifi.esp)
 MQTT.set_socket(socket, pyportal.network._wifi.esp)
 
 # Set up a MiniMQTT Client
@@ -378,11 +377,6 @@ def interval_led_blink():
     board_led.value = not board_led.value
 
 
-def one_sec_tick():
-    if dog_is_enabled:
-        wd.feed()
-
-
 TS = namedtuple("TS", "interval fun")
 TS_INTERVALS = {
     "localtime": TS(3620, interval_localtime),
@@ -390,17 +384,39 @@ TS_INTERVALS = {
     "update_time": TS(16, gfx.update_time),
     "send_status": TS(10 * 60, interval_send_status),
     LED_BLINK: TS(LED_BLINK_DEFAULT, interval_led_blink),  # may be overridden via mqtt
-    "1sec": TS(1, one_sec_tick),
 }
 
 
 def _try_reconnect(e):
     print(f"Failed mqtt loop: {e}")
     _inc_counter("fail_loop")
+    feed_dog()
     time.sleep(3)
+
+    disc_ok = False
     try:
+        feed_dog()
         client.disconnect()
+        disc_ok = True
+    except Exception as e:
+        print(f"Failed mqtt disconnect: {e}")
+
+    try:
+        if not disc_ok:
+            _inc_counter("esp_reset")
+            feed_dog()
+            pyportal.network._wifi.esp.reset()
+            print("Reconnecting to WiFi...")
+            feed_dog()
+            pyportal.network.connect()
+            print("Reset esp and Wifi connected")
+    except Exception as e:
+        print(f"FATAL! Failed esp reset: {e}")
+
+    try:
+        feed_dog()
         client.connect()
+        print("Reconnected to mqtt broker")
     except Exception as e:
         # bye bye cruel world
         print(f"FATAL! Failed reconnect: {e}")
@@ -434,6 +450,11 @@ def no_dog():
     return not dog_is_enabled
 
 
+def feed_dog():
+    if dog_is_enabled:
+        wd.feed()
+
+
 run_once()
 
 # ------------- Main loop ------------- #
@@ -441,13 +462,21 @@ run_once()
 tss = {interval: None for interval in TS_INTERVALS}
 t0 = time.monotonic()
 now = t0
+loop_failures = 0
 while True:
+    feed_dog()
+
     try:
-        if not client.loop(timeout=2):
+        if not client.loop(timeout=0.5):
+            ## if not client.loop():
             # Take a little break if nothing really happened
             time.sleep(0.123)
+        loop_failures = 0
     except Exception as e:
-        _try_reconnect(e)
+        loop_failures += 1
+        if loop_failures > 2:
+            _try_reconnect(e)
+            loop_failures = 0
 
     now = time.monotonic()
     for ts_interval in TS_INTERVALS:
