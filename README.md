@@ -60,12 +60,31 @@ $ for LIB in \
     adafruit_bitmap_font \
     adafruit_esp32spi \
     adafruit_logging \
-    adafruit_minimqtt \
     adafruit_pyportal \
     neopixel \
     ; do circup install $LIB ; done
 ```
 
+**Note:** `adafruit_minimqtt` from latest library is not working, so we will be using an older revision, located
+under the lib directory in this repo. To be fixed...
+
+```text
+    466.125: DEBUG - SUBSCRIBING to topic /pyportalkitchen/brightness with QoS 0
+    466.168: DEBUG - Receiving PUBLISH
+    Topic: /sensor/temperature_house
+    Msg: bytearray(b'69')
+    466.180: INFO - MMQT error: invalid message received as response to SUBSCRIBE: 0x31
+    466.203: DEBUG - Reconnect timeout computed to 4.00
+    466.205: DEBUG - adding jitter 0.91 to 4.00 seconds
+    466.208: DEBUG - Attempting to connect to MQTT broker (attempt #2)
+    466.209: DEBUG - Attempting to establish MQTT connection...
+    466.211: DEBUG - Sleeping for 4.91 seconds due to connect back-off
+    Traceback (most recent call last):
+      File "code.py", line 301, in <module>
+      File "/lib/adafruit_minimqtt/adafruit_minimqtt.py", line 502, in connect
+      File "/lib/adafruit_minimqtt/adafruit_minimqtt.py", line 560, in _connect
+```
+    
 This is what it should look like:
 ```text
 $ ls /Volumes/CIRCUITPY/
@@ -73,30 +92,15 @@ LICENSE         boot_out.txt    fonts           init_background.bmp openweather_
 README.md       code.py         icons           lib
 
 $ ls /Volumes/CIRCUITPY/lib
-adafruit_adt7410.mpy        adafruit_display_text       adafruit_io         adafruit_miniqr.mpy     adafruit_pyportal       adafruit_touchscreen.mpy
-adafruit_bitmap_font        adafruit_esp32spi       adafruit_logging.mpy        adafruit_pixelbuf.mpy       adafruit_register       neopixel.mpy
-adafruit_bus_device     adafruit_fakerequests.mpy   adafruit_minimqtt       adafruit_portalbase     adafruit_requests.mpy       simpleio.mpy
+adafruit_adt7410.mpy        adafruit_portalbase
+adafruit_bitmap_font        adafruit_pyportal
+adafruit_esp32spi       adafruit_register
+adafruit_io         adafruit_touchscreen.mpy
+adafruit_logging.mpy        neopixel.mpy
+adafruit_minimqtt
 
 $ circup freeze | sort
-Found device at /Volumes/CIRCUITPY, running CircuitPython 7.3.3.
-adafruit_adt7410==1.3.8
-adafruit_bitmap_font==1.5.11
-adafruit_bus_device==5.2.3
-adafruit_display_text==2.22.12
-adafruit_esp32spi==5.0.5
-adafruit_fakerequests==1.0.11
-adafruit_io==5.6.12
-adafruit_logging==5.0.1
-adafruit_minimqtt==6.0.1
-adafruit_miniqr==1.3.15
-adafruit_pixelbuf==1.1.8
-adafruit_portalbase==1.14.5
-adafruit_pyportal==6.2.8
-adafruit_register==1.9.14
-adafruit_requests==1.12.11
-adafruit_touchscreen==1.1.17
-neopixel==6.3.7
-simpleio==3.0.9
+Found device at /Volumes/CIRCUITPY, running CircuitPython 8.2.7.
 ```
 
 ### secrets.py

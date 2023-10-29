@@ -31,7 +31,7 @@ import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
 from adafruit_pyportal import PyPortal
 
-supervisor.disable_autoreload()
+supervisor.runtime.autoreload = False
 
 cwd = ("/" + __file__).rsplit("/", 1)[
     0
@@ -330,7 +330,8 @@ def set_backlight(val):
     except (ValueError, TypeError):
         return
     val = max(0, min(1.0, val))
-    board.DISPLAY.auto_brightness = False
+    # https://github.com/adafruit/circuitpython/pull/1815
+    # board.DISPLAY.auto_brightness = False
     board.DISPLAY.brightness = val
 
 
